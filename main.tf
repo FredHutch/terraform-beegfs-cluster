@@ -29,6 +29,15 @@ resource "aws_ebs_volume" "metadata_volumes" {
   )}"
 }
 
+# Attach metadata volumes
+resource "aws_volume_attachment" "md_volume_attachment" {
+  count = "${var.md_node["nnodes"]}"
+  device_name = "${var.ebs_device_names[0]}"
+  volume_id = "${aws_ebs_volume.metadata_volumes.*.id[count.index]}"
+  instance_id = "${aws_instance.md_node.*.id[count.index]}"
+}
+
+
 # Create data store volumes
 resource "aws_ebs_volume" "data_volumes" {
   count = "${var.storage_node["nvols"] * var.storage_node["nnodes"]}"
