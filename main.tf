@@ -2,20 +2,16 @@ provider "aws" {
   region = "${var.region}"
 }
 
-# Create volumes for datastore
-
-resource "aws_ebs_volume" "data_volumes" {
-  count = "${var.data_volume["nvols"]}"
-
-  availability_zone = "${var.az}"
-  size = "${var.data_volume["size"]}"
-  type = "${var.data_volume["type"]}"
+# Create metadata servers- 
+resource "aws_instance" "md_node" {
+  count = "${var.md_node["nnodes"]}"
+  ami = "${var.instance_ami}"
+  instance_type = "${var.md_node["type"]}"
 
   tags = "${merge(
-    map("Name", "${var.cluster_name}_stor${count.index}"),
+    map("Name", "${var.cluster_name}_md${count.index}"),
     var.tags
   )}"
-
 }
 
 # Create metadata volumes
@@ -33,4 +29,37 @@ resource "aws_ebs_volume" "metadata_volumes" {
   )}"
 }
 
+# Create data store volumes
+resource "aws_ebs_volume" "data_volumes" {
+  count = "${var.storage_node["nvols"] * var.storage_node["nnodes"]}"
+
+  availability_zone = "${var.az}"
+  size = "${var.data_volume["size"]}"
+  type = "${var.data_volume["type"]}"
+
+  tags = "${merge(
+    map("Name", "${var.cluster_name}_stor${count.index}"),
+    var.tags
+  )}"
+
+}
+
 # Create storage servers- 
+resource "aws_instance" "storage_node" {
+  count = "${var.storage_node["nnodes"]}"
+  ami = "${var.instance_ami}"
+  instance_type = "${var.storage_node["type"]}"
+
+  tags = "${merge(
+    map("Name", "${var.cluster_name}_stor${count.index}"),
+    var.tags
+  )}"
+}
+
+# Attach storage volumes
+resource "aws_volume_attachment" "storage_volume_attachment" {
+  count = "${var.storage_node["nvols"] * var.storage_node["nnodes"]}"
+  device_name = "${element(var.ebs_device_names, count.index % var.storage_node["nvols"])}"
+  volume_id = "${aws_ebs_volume.data_volumes.*.id[count.index]}"
+  instance_id = "${aws_instance.storage_node.*.id[floor(count.index/var.storage_node["nvols"])]}"
+}
