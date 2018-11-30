@@ -2,7 +2,7 @@ provider "aws" {
   region = "${var.region}"
 }
 
-resource "aws_instance" "admin_node" {
+resource "aws_instance" "admon_node" {
   ami = "${var.instance_ami}"
   instance_type = "${var.md_node["type"]}"
 
@@ -12,7 +12,7 @@ resource "aws_instance" "admin_node" {
   }
 
   tags = "${merge(
-    map("Name", "${var.cluster_name}_admin"),
+    map("Name", "${var.cluster_name}_admon"),
     var.tags
   )}"
 }
