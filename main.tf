@@ -2,11 +2,31 @@ provider "aws" {
   region = "${var.region}"
 }
 
+resource "aws_instance" "admin_node" {
+  ami = "${var.instance_ami}"
+  instance_type = "${var.md_node["type"]}"
+
+  root_block_device {
+    volume_type = "standard"
+    volume_size = "30"
+  }
+
+  tags = "${merge(
+    map("Name", "${var.cluster_name}_admin"),
+    var.tags
+  )}"
+}
+
 # Create metadata servers- 
 resource "aws_instance" "md_node" {
   count = "${var.md_node["nnodes"]}"
   ami = "${var.instance_ami}"
   instance_type = "${var.md_node["type"]}"
+
+  root_block_device {
+    volume_type = "standard"
+    volume_size = "30"
+  }
 
   tags = "${merge(
     map("Name", "${var.cluster_name}_md${count.index}"),
@@ -50,7 +70,6 @@ resource "aws_ebs_volume" "data_volumes" {
     map("Name", "${var.cluster_name}_stor${count.index}"),
     var.tags
   )}"
-
 }
 
 # Create storage servers- 
@@ -58,6 +77,11 @@ resource "aws_instance" "storage_node" {
   count = "${var.storage_node["nnodes"]}"
   ami = "${var.instance_ami}"
   instance_type = "${var.storage_node["type"]}"
+  root_block_device {
+    volume_type = "standard"
+    volume_size = "30"
+  }
+
 
   tags = "${merge(
     map("Name", "${var.cluster_name}_stor${count.index}"),
