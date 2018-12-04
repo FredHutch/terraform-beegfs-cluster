@@ -21,6 +21,14 @@ variable "tags" {
   default = {}
 }
 
+variable "key_name" {
+  description = "Key pair name to use for connections"
+}
+
+variable "key_path" {
+  description = "Path to the private key used for connecting"
+}
+
 variable "data_volume" {
   description = "Information about the data volumes for beegfs"
   type = "map"
