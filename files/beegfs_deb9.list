@@ -1,0 +1,2 @@
+# deb [arch=amd64] https://username:password@www.beegfs.io/login/release/beegfs_7_1 stretch non-free
+deb [arch=amd64] https://www.beegfs.io/release/beegfs_7_1 stretch non-free
