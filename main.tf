@@ -50,7 +50,7 @@ resource "aws_instance" "mgmt_node" {
   # Run chef-client
   provisioner "remote-exec" {
     inline = [
-      "sudo chef-client -z --config /tmp/installer/client.rb -o 'role[beegfs-mgmt]'"
+      "sudo chef-client -z --config /tmp/installer/client.rb -o 'role[beegfs_mgmt]'"
     ]
   }
 
@@ -58,6 +58,16 @@ resource "aws_instance" "mgmt_node" {
     map("Name", "${var.cluster_name}_mgmt"),
     var.tags
   )}"
+}
+
+
+data "template_file" "cluster_node_role" {
+  template = "${file("files/${var.cluster_name}_node.rb.tpl")}"
+  vars {
+    role_name = "${var.cluster_name}_node",
+    mgmt_host = "${aws_instance.mgmt_node.private_ip}",
+    storage_dir = "/${var.cluster_name}/data"
+  }
 }
 
 # Create metadata servers- 
@@ -107,10 +117,16 @@ resource "aws_instance" "md_node" {
     inline = [ "sudo dpkg --install /tmp/installer/chef.deb" ]
   }
 
+  # Add cluster-specific role
+  provisioner "file" {
+    content = "${data.template_file.cluster_node_role.rendered}"
+    destination = "/tmp/installer/chef-repo/roles/${var.cluster_name}_node.rb"
+  }
+
   # Run chef-client
   provisioner "remote-exec" {
     inline = [
-      "sudo chef-client -z --config /tmp/installer/client.rb -o 'role[beegfs-md]'"
+      "sudo chef-client -z --config /tmp/installer/client.rb -o 'role[beegfs_md]','role[${var.cluster_name}_node]'"
     ]
   }
 
@@ -205,10 +221,16 @@ resource "aws_instance" "storage_node" {
     inline = [ "sudo dpkg --install /tmp/installer/chef.deb" ]
   }
 
+  # Add cluster-specific role
+  provisioner "file" {
+    content = "${data.template_file.cluster_node_role.rendered}"
+    destination = "/tmp/installer/chef-repo/roles/${var.cluster_name}_node.rb"
+  }
+
   # Run chef-client
   provisioner "remote-exec" {
     inline = [
-      "sudo chef-client -z --config /tmp/installer/client.rb -o 'role[beegfs-stor]'"
+      "sudo chef-client -z --config /tmp/installer/client.rb -o 'role[beegfs_stor]','role[${var.cluster_name}_node]'"
     ]
   }
 
